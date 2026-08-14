@@ -9,7 +9,7 @@
  * @module dsh-plugin-market-host/market/github
  */
 
-import type { MarketEntry, MarketEntryDetail, MarketRepo } from '../types.ts'
+import type { MarketEntryDetail, MarketRepo, MarketSearchHit } from '../types.ts'
 
 /** The topic every installable plugin repository must carry. */
 export const MARKET_TOPIC = 'dsh-plugin'
@@ -155,22 +155,18 @@ function categories(manifest: ManifestSlice | null): readonly string[] {
 }
 
 /**
- * Build a market entry from a search hit plus its resolved manifest.
+ * Build a lightweight search hit from a GitHub search result. This is a pure
+ * mapping of the search metadata — it performs no additional request and does
+ * not read the repository manifest, keeping `search` to a single API call.
  * @param summary - the GitHub search result.
- * @param manifest - the repository's package.json, or null.
- * @param installed - whether the bundle is already in the target profile.
  */
-export function toEntry(summary: RepoSummary, manifest: ManifestSlice | null, installed: boolean): MarketEntry {
+export function toHit(summary: RepoSummary): MarketSearchHit {
   return {
     repo: summary.full_name,
-    displayName: displayName(manifest, summary.full_name),
-    description: description(manifest, summary.description ?? ''),
+    description: summary.description ?? '',
     stars: summary.stargazers_count,
     updatedAt: summary.pushed_at,
     license: summary.license?.spdx_id ?? null,
-    categories: categories(manifest),
-    installable: isInstallable(manifest),
-    installed,
   }
 }
 

@@ -15,7 +15,7 @@ export {
   resolvePinSpec,
   searchRepositories,
   toDetail,
-  toEntry,
+  toHit,
 } from './market/github.ts'
 export type {
   DshMarketManifest,

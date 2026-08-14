@@ -9,13 +9,16 @@
 /** GitHub repository slug in `owner/repo` form. */
 export type MarketRepo = string
 
-/** One installable community plugin discovered from the `dsh-plugin` topic. */
-export interface MarketEntry {
+/**
+ * One lightweight search hit. A search does not read any repository
+ * `package.json` (that would be an N+1 GitHub call per result and exhaust the
+ * anonymous rate limit), so a hit carries only the GitHub search metadata.
+ * Installability is resolved by `info` instead.
+ */
+export interface MarketSearchHit {
   /** `owner/repo` slug. */
   readonly repo: MarketRepo
-  /** Human-facing name (from `dsh.market.displayName` or the package name). */
-  readonly displayName: string
-  /** Short description (from `dsh.market` or the repository description). */
+  /** Short description from the GitHub repository metadata. */
   readonly description: string
   /** GitHub star count, used as a lightweight popularity signal. */
   readonly stars: number
@@ -23,20 +26,14 @@ export interface MarketEntry {
   readonly updatedAt: string
   /** SPDX license identifier, or null when GitHub reports none. */
   readonly license: string | null
-  /** Stable category tags (from `dsh.market.categories` or package keywords). */
-  readonly categories: readonly string[]
-  /** Whether the repository declares a `dsh.bundle.patch` (installable at all). */
-  readonly installable: boolean
-  /** Whether the bundle package name is already in the target profile. */
-  readonly installed: boolean
 }
 
 /** Search response over the GitHub topic. */
 export interface MarketSearchResult {
   /** The query that produced this result. */
   readonly query: string
-  /** Matching entries, in star-descending order. */
-  readonly entries: readonly MarketEntry[]
+  /** Matching hits, in star-descending order. */
+  readonly entries: readonly MarketSearchHit[]
   /** Total matches reported by GitHub (may exceed `entries` when paged). */
   readonly total: number
 }

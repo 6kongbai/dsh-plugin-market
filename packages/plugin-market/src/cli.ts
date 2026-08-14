@@ -16,7 +16,7 @@ import {
   readRepositoryManifest,
   searchRepositories,
   toDetail,
-  toEntry,
+  toHit,
   uninstall,
 } from 'dsh-plugin-market-host'
 
@@ -81,14 +81,12 @@ function usage(): string {
 
 async function runSearch(query: string): Promise<void> {
   const response = await searchRepositories(query, process.env.GITHUB_TOKEN)
-  const installed = new Set(installedBundleNames(process.env.DSH_PLUGIN_MARKET_PROFILE ?? DEFAULT_PROFILE))
   for (const item of response.items) {
-    const manifest = await readRepositoryManifest(item.full_name, process.env.GITHUB_TOKEN)
-    const entry = toEntry(item, manifest, manifest?.name !== undefined && installed.has(manifest.name))
-    const tag = entry.installable ? (entry.installed ? 'installed' : 'installable') : 'not-installable'
-    process.stdout.write(`${entry.repo}  ★${entry.stars}  [${tag}]\n  ${entry.description}\n`)
+    const hit = toHit(item)
+    process.stdout.write(`${hit.repo}  ★${hit.stars}  ${hit.license ?? 'no-license'}\n  ${hit.description}\n`)
   }
   if (response.items.length === 0) process.stdout.write('(no results)\n')
+  process.stdout.write(`\n${response.total_count} results — run \`dsh-plugin-market info <owner/repo>\` for installability\n`)
 }
 
 async function runInfo(repo: string): Promise<void> {
