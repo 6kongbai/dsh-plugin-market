@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-market",
-  "description": "A dsh plugin marketplace CLI: browse, install, and uninstall community plugins from the dsh-plugin GitHub topic",
+  "description": "A dsh plugin marketplace: browse, install, and uninstall community plugins from the dsh-plugin GitHub topic, via CLI or the sidebar Web panel",
   "version": "0.1.0",
   "publishConfig": {
     "access": "public"
@@ -16,19 +16,31 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./cordis.patch.yml": "./cordis.patch.yml",
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
     "lib/cli.js",
+    "cordis.patch.yml",
     "lib/types/**/*.d.ts"
   ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "market": {
+      "displayName": "Plugin Marketplace",
+      "categories": ["developer-tools", "plugin-management"]
+    }
+  },
   "scripts": {
     "build": "tsc -b && tsdown"
   },
   "license": "MIT",
   "dependencies": {
+    "dsh-plugin-market-client": "workspace:^",
     "dsh-plugin-market-host": "workspace:^"
   },
   "devDependencies": {

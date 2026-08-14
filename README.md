@@ -1,22 +1,25 @@
 # dsh-plugin-market
 
-A plugin marketplace CLI for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`): browse, install, and uninstall **community bundle plugins** from the [`dsh-plugin` GitHub topic](https://github.com/topics/dsh-plugin).
+A plugin marketplace for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`): browse, install, and uninstall **community bundle plugins** from the [`dsh-plugin` GitHub topic](https://github.com/topics/dsh-plugin), from a sidebar Web panel and a CLI.
 
 The community registry is a GitHub topic, not a proprietary index. Any repository tagged `dsh-plugin` whose `package.json` declares `dsh.bundle.patch` is installable.
 
-## Status
+## How it is provided
 
-**v0.1.0 ships the CLI only.** A sidebar Web GUI is planned but blocked on an upstream limitation: the harness's Typert generator (`@deepseek-ai/dsh-typert-generator`) only recognizes `@Remote` services from *source* project references, not from installed npm packages, so an out-of-tree bundle cannot generate its Remote face today. The client half lives in `packages/market-client/` (kept out of the pnpm workspace) and will be wired up once Typert supports out-of-tree plugins.
+The marketplace is itself a dsh bundle: `cordis.patch.yml` inserts a Host half and a Client half over an existing web surface.
+
+- **Host half** registers `/plugin-market/*` HTTP routes on `ctx.webServer` — no Typert Remote, which the harness generator cannot emit for out-of-tree npm packages. Routes map one-to-one onto the engine (search/info/list/install/uninstall).
+- **Client half** contributes a sidebar foot action (beside Settings) whose panel drives those routes over same-origin fetch.
+- **CLI** (`dsh-plugin-market`) reuses the same engine for headless use.
 
 ## Install
 
 ```sh
-# from npm (once published)
-npm i -g dsh-plugin-market
-
-# or straight from GitHub now
-npm i -g github:<owner>/dsh-plugin-market
+# bundle: installs the sidebar panel + CLI into the target profile
+dsh plugin --profile web add github:6kongbai/dsh-plugin-market
 ```
+
+Restart `dsh`; the marketplace icon appears at the sidebar foot. The bundle's `cordis.patch.yml` targets the `web` profile by default; edit the `plugin-market` row's `config.profile` (or set `DSH_PLUGIN_MARKET_PROFILE`) to target another profile.
 
 Then:
 
@@ -50,14 +53,16 @@ Options:
 
 ```
 dsh-plugin-market/
-├── packages/market-host      Engine (plain Node, no Cordis): GitHub indexing,
-│                             install landing, reconcile, audit. Consumed by
-│                             the CLI and, later, by the Web GUI host half.
-├── packages/plugin-market    CLI package: the `dsh-plugin-market` bin.
-└── packages/market-client    (future work, out of workspace) Web GUI sidebar panel.
+├── packages/market-host      Engine + Host gateway: GitHub indexing, install
+│                             landing, reconcile, audit, and the MarketGateway
+│                             Service registering /plugin-market routes.
+├── packages/market-client    Client half: sidebar foot action + search panel.
+└── packages/plugin-market    Bundle: cordis.patch.yml (inserts both halves) + CLI.
 ```
 
-The engine (`dsh-plugin-market-host`) exposes `searchRepositories`, `fetchRepository`, `readRepositoryManifest`, `toEntry`, `toDetail`, `resolvePinSpec`, `install`, `uninstall`, `installedBundleNames`, `profileDir`, and `auditLogPath`.
+The engine (`dsh-plugin-market-host`) exposes `searchRepositories`, `fetchRepository`, `readRepositoryManifest`, `toHit`, `toDetail`, `resolvePinSpec`, `install`, `uninstall`, `installedBundleNames`, `profileDir`, and `auditLogPath`, plus the `MarketGateway` Service.
+
+The Web panel is limited to the **web** platform (`localhost`), the same surface the harness webServer serves. The Electron desktop (`file://` + IPC bridge) is out of scope until a fetch bridge is wired.
 
 ## `dsh.market` metadata contract (for plugin authors)
 

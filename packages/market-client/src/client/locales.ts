@@ -12,12 +12,11 @@ export const zh = {
   uninstall: '卸载',
   installed: '已安装',
   notInstallable: '不可安装',
+  stars: '星标',
+  license: '许可证',
   confirmInstall: '安装第三方社区插件将以其当前用户权限执行代码。确认安装？',
   confirmUninstall: '确认卸载该插件？',
   restart: '已安装，重启 dsh 后生效。',
-  stars: '星标',
-  license: '许可证',
-  updated: '更新于',
 } satisfies Record<string, string>
 
 /** Plugin market locale key union. */
@@ -35,10 +34,9 @@ export const en = {
   uninstall: 'Uninstall',
   installed: 'Installed',
   notInstallable: 'Not installable',
+  stars: 'stars',
+  license: 'License',
   confirmInstall: 'Installing third-party community code runs it with your current user privileges. Continue?',
   confirmUninstall: 'Uninstall this plugin?',
   restart: 'Installed — restart dsh to activate.',
-  stars: 'stars',
-  license: 'License',
-  updated: 'Updated',
 } satisfies Record<MarketLocaleKey, string>

@@ -1,0 +1,18 @@
+# The dsh-plugin-market bundle patch: marketplace host + client halves over an
+# existing web surface. The host half is a webServer-route gateway (no Typert
+# Remote); the client half contributes the sidebar foot action. Both are
+# additive inserts, so this bundle composes over any profile that already
+# mounts a webServer and a sidebar.
+#
+# The host half's `profile` config names the profile installs land in. Change
+# it in a later patch layer (or the profile's own cordis.patch.yml) to target a
+# different profile.
+
+- insert:
+    - id: plugin-market
+      name: 'dsh-plugin-market-host'
+      config:
+        profile: web
+
+    - id: plugin-market-client
+      name: 'dsh-plugin-market-client'

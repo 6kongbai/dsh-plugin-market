@@ -29,3 +29,5 @@ export {
   profileDir,
   uninstall,
 } from './install.ts'
+
+export { MarketGateway, type Config as MarketGatewayConfig } from './gateway.ts'

@@ -1,8 +1,6 @@
 packages:
-  # Only the engine and the CLI ship in v1. The Web GUI client half
-  # (packages/market-client) is kept for future work but stays out of the
-  # workspace until Typert supports out-of-tree plugins.
   - "packages/market-host"
+  - "packages/market-client"
   - "packages/plugin-market"
 minimumReleaseAgeExclude:
   - '@deepseek-ai/dsh-agent-default-model@0.1.0-rc.6'

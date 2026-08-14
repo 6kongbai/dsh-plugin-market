@@ -1,43 +1,47 @@
 /**
  * Marketplace sidebar foot action: a trigger beside Settings that opens a
- * searchable panel over the Host `pluginMarket` Remote. The panel is a pure
- * view of the injected functions; every mutation is confirmed before landing.
+ * searchable panel over the Host `/plugin-market` HTTP routes. The panel is a
+ * pure view of plain fetch calls; every mutation is confirmed before landing.
  * @module dsh-plugin-market-client/client/MarketplacePanel
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type {
-  InstallResult,
-  MarketEntry,
-  MarketEntryDetail,
-  MarketSearchResult,
-  UninstallResult,
-} from 'dsh-plugin-market-host/types'
-import type { MarketLocaleKey } from './locales.ts'
+import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 
-/** Registration-side Remote face used by the panel. */
-export interface MarketplacePanelInjected {
-  /** Search the dsh-plugin topic. */
-  search: (query: string) => Promise<MarketSearchResult>
-  /** Read full detail for one repository. */
-  info: (repo: string) => Promise<MarketEntryDetail>
-  /** Install one repository into the target profile. */
-  install: (repo: string) => Promise<InstallResult>
-  /** Remove one package from the target profile. */
-  uninstall: (packageName: string) => Promise<UninstallResult>
+/** Wire shapes returned by the Host gateway routes (mirror of the Host types). */
+interface MarketSearchHit {
+  readonly repo: string
+  readonly description: string
+  readonly stars: number
+  readonly updatedAt: string
+  readonly license: string | null
+}
+
+interface MarketSearchResult {
+  readonly entries: readonly MarketSearchHit[]
+  readonly total: number
+}
+
+interface MarketEntryDetail {
+  readonly repo: string
+  readonly displayName: string
+  readonly description: string
+  readonly stars: number
+  readonly updatedAt: string
+  readonly license: string | null
+  readonly installable: boolean
+  readonly installed: boolean
 }
 
 /** Full component props assembled by the sidebar foot-action renderer. */
 export type MarketplacePanelProps =
-  { readonly wide: boolean }
+  PropsRuntime<'sidebar.footer.action'>
   & PropsLocale<'market'>
-  & InjectFace<MarketplacePanelInjected>
 
 type ViewState =
   | { readonly status: 'loading' }
   | { readonly status: 'error' }
-  | { readonly status: 'ready'; readonly entries: readonly MarketEntry[] }
+  | { readonly status: 'ready'; readonly entries: readonly MarketSearchHit[] }
 
 const BUTTON_STYLE: React.CSSProperties = {
   display: 'flex',
@@ -66,8 +70,26 @@ const PANEL_STYLE: React.CSSProperties = {
   zIndex: 1000,
 }
 
+/** GET a JSON route and unwrap a non-2xx into an error. */
+async function apiGet<T>(path: string): Promise<T> {
+  const response = await fetch(path)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json() as Promise<T>
+}
+
+/** POST a JSON body to a route and unwrap a non-2xx into an error. */
+async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json() as Promise<T>
+}
+
 /** Render the marketplace foot action and its panel. */
-export function MarketplacePanel({ wide, t, search, install, uninstall }: MarketplacePanelProps): ReactNode {
+export function MarketplacePanel({ wide, t }: MarketplacePanelProps): ReactNode {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [state, setState] = useState<ViewState>({ status: 'loading' })
@@ -77,14 +99,14 @@ export function MarketplacePanel({ wide, t, search, install, uninstall }: Market
     if (!open) return
     let current = true
     setState({ status: 'loading' })
-    void search(query).then(
+    void apiGet<MarketSearchResult>(`/plugin-market/search?q=${encodeURIComponent(query)}`).then(
       (result) => { if (current) setState({ status: 'ready', entries: result.entries }) },
       () => { if (current) setState({ status: 'error' }) },
     )
     return () => { current = false }
-  }, [open, query, search])
+  }, [open, query])
 
-  const filtered = useMemo(
+  const entries = useMemo(
     () => state.status === 'ready' ? state.entries : [],
     [state],
   )
@@ -93,19 +115,9 @@ export function MarketplacePanel({ wide, t, search, install, uninstall }: Market
     if (!window.confirm(t('confirmInstall'))) return
     setNotice(null)
     try {
-      await install(repo)
+      await apiPost<MarketEntryDetail>('/plugin-market/install', { repo })
       setNotice(t('restart'))
-    } catch (error) {
-      setNotice((error as Error).message)
-    }
-  }
-
-  const onUninstall = async (packageName: string): Promise<void> => {
-    if (!window.confirm(t('confirmUninstall'))) return
-    setNotice(null)
-    try {
-      await uninstall(packageName)
-      setNotice(t('restart'))
+      setOpen(false)
     } catch (error) {
       setNotice((error as Error).message)
     }
@@ -113,8 +125,19 @@ export function MarketplacePanel({ wide, t, search, install, uninstall }: Market
 
   return (
     <div>
-      <button type="button" style={BUTTON_STYLE} onClick={() => { setOpen(value => !value) }} aria-expanded={open}>
-        <span aria-hidden="true">🧩</span>
+      <button
+        type="button"
+        style={BUTTON_STYLE}
+        onClick={() => { setOpen(value => !value) }}
+        aria-expanded={open}
+        title={t('title')}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path
+            fill="currentColor"
+            d="M3 2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H3Zm0 1h4v3H3V3Zm5 0h4v3H8V3Zm-5 4h4v6H3V7Zm5 0h4v6H8V7Z"
+          />
+        </svg>
         {wide ? <span>{t('title')}</span> : null}
       </button>
       {open ? (
@@ -130,30 +153,20 @@ export function MarketplacePanel({ wide, t, search, install, uninstall }: Market
           {notice !== null ? <p role="status">{notice}</p> : null}
           {state.status === 'loading' ? <p>{t('loading')}</p> : null}
           {state.status === 'error' ? <p role="alert">{t('error')}</p> : null}
-          {state.status === 'ready' && filtered.length === 0 ? <p>{t('empty')}</p> : null}
-          {state.status === 'ready' && filtered.length > 0 ? (
+          {state.status === 'ready' && entries.length === 0 ? <p>{t('empty')}</p> : null}
+          {state.status === 'ready' && entries.length > 0 ? (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {filtered.map((entry) => (
+              {entries.map((entry) => (
                 <li key={entry.repo} style={{ padding: '10px 0', borderTop: '1px solid var(--border, #eee)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong>{entry.displayName}</strong>
-                    <span>{entry.installable ? `${t('stars')} ${entry.stars}` : t('notInstallable')}</span>
+                    <strong>{entry.repo}</strong>
+                    <span>{t('stars')} {entry.stars}</span>
                   </div>
                   <p style={{ margin: '4px 0', fontSize: 12, color: 'var(--muted, #666)' }}>{entry.description}</p>
                   <div style={{ fontSize: 12, color: 'var(--muted, #888)' }}>
-                    {entry.license !== null ? `${t('license')}: ${entry.license} · ` : ''}{entry.repo}
+                    {entry.license !== null ? `${t('license')}: ${entry.license}` : null}
                   </div>
-                  {entry.installable ? (
-                    entry.installed ? (
-                      <button type="button" onClick={() => { void onUninstall(entry.displayName) }}>
-                        {t('uninstall')}
-                      </button>
-                    ) : (
-                      <button type="button" onClick={() => { void onInstall(entry.repo) }}>
-                        {t('install')}
-                      </button>
-                    )
-                  ) : null}
+                  <button type="button" onClick={() => { void onInstall(entry.repo) }}>{t('install')}</button>
                 </li>
               ))}
             </ul>
