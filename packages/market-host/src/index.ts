@@ -1,8 +1,9 @@
 /**
- * Engine for the dsh plugin marketplace: GitHub topic indexing and profile
- * install/uninstall landing. This package is a plain Node library with no
- * Cordis dependency — it is consumed by the CLI and, later, by a Web GUI Host
- * half once Typert supports out-of-tree plugins.
+ * Engine + Host gateway for the dsh plugin marketplace: GitHub topic indexing,
+ * profile install/uninstall landing, and the `MarketGateway` Service that
+ * registers `/plugin-market` routes on `ctx.webServer`. The default export is
+ * the Host plugin (a Cordis Service), so a bundle `insert` naming this package
+ * mounts it; every other export is the engine the CLI and the gateway share.
  * @module dsh-plugin-market-host
  */
 
@@ -30,4 +31,4 @@ export {
   uninstall,
 } from './install.ts'
 
-export { MarketGateway, type Config as MarketGatewayConfig } from './gateway.ts'
+export { default, MarketGateway, type Config as MarketGatewayConfig } from './gateway.ts'
